@@ -12,6 +12,10 @@
 #include "esp_log.h"
 #include "soc/soc_caps.h"
 
+
+/*---------------------------------------------------------------
+        Display General Macros
+---------------------------------------------------------------*/
 #define MAX_DISTANCE_CM 500 // 5m max
 #define TRIGGER_GPIO 25
 #define ECHO_GPIO 26
@@ -19,8 +23,6 @@
 /*---------------------------------------------------------------
         ADC General Macros
 ---------------------------------------------------------------*/
-//ADC1 Channels
-
 #define EXAMPLE_ADC1_CHAN0          ADC_CHANNEL_6
 #define TAG "adc_cali_example"
 #define EXAMPLE_ADC_ATTEN           ADC_ATTEN_DB_11
@@ -31,7 +33,7 @@ static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel,
 static void example_adc_calibration_deinit(adc_cali_handle_t handle);
 
 
-/*---------------------------------------------------------------
+    /*---------------------------------------------------------------
         ADC Calibration
 ---------------------------------------------------------------*/
 static bool example_adc_calibration_init(adc_unit_t unit, adc_channel_t channel, adc_atten_t atten, adc_cali_handle_t *out_handle)
@@ -98,8 +100,23 @@ static void example_adc_calibration_deinit(adc_cali_handle_t handle)
 /*---------------------------------------------------------------
         Read temperature from ADC
 ---------------------------------------------------------------*/
-char* read_raw_data(void)
+void read_raw_data(int* raw, adc_oneshot_unit_handle_t adc1_handle)
 {
+    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, EXAMPLE_ADC1_CHAN0, &adc_raw[0][0]));
+    ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, adc_raw[0][0]);
+    *raw = adc_raw[0][0];
+}
+/*---------------------------------------------------------------
+        Read distance and display
+---------------------------------------------------------------*/
+
+void ultrasonic_oled_test(void *pvParameters)
+{
+    ultrasonic_sensor_t sensor = {
+        .trigger_pin = TRIGGER_GPIO,
+        .echo_pin = ECHO_GPIO
+    };
+
     //-------------ADC1 Init---------------//
     adc_oneshot_unit_handle_t adc1_handle;
     adc_oneshot_unit_init_cfg_t init_config1 = {
@@ -117,24 +134,6 @@ char* read_raw_data(void)
     //-------------ADC1 Calibration Init---------------//
     adc_cali_handle_t adc1_cali_chan0_handle = NULL;
     bool do_calibration1_chan0 = example_adc_calibration_init(ADC_UNIT_1, EXAMPLE_ADC1_CHAN0, EXAMPLE_ADC_ATTEN, &adc1_cali_chan0_handle);
-
-    ESP_ERROR_CHECK(adc_oneshot_read(adc1_handle, EXAMPLE_ADC1_CHAN0, &adc_raw[0][0]));
-    ESP_LOGI(TAG, "ADC%d Channel[%d] Raw Data: %d", ADC_UNIT_1 + 1, EXAMPLE_ADC1_CHAN0, adc_raw[0][0]);
-    char raw_data[10];
-    sprintf(raw_data, " Temp: %d", adc_raw[0][0]);
-    return raw_data;
-
-}
-/*---------------------------------------------------------------
-        Read distance and display
----------------------------------------------------------------*/
-
-void ultrasonic_oled_test(void *pvParameters)
-{
-    ultrasonic_sensor_t sensor = {
-        .trigger_pin = TRIGGER_GPIO,
-        .echo_pin = ECHO_GPIO
-    };
 
     ultrasonic_init(&sensor);
 
@@ -166,15 +165,20 @@ void ultrasonic_oled_test(void *pvParameters)
                     printf("%s\n", esp_err_to_name(res));
             }
         }
-        else
-        printf("Distance: %0.04f cm\n", distance*100);
+        
         char dist[11];
-        printf("Temperature: ");
+        int temp;
+        read_raw_data(&temp, adc1_handle);
+        char temperature[9];
+
+        ESP_LOGI(TAG, "Distance: %0.04f cm", distance*100);
+        ESP_LOGI(TAG, "Temperature: %0.2f C", temp * 0.0625);
         sprintf(dist, " %0.04f cm", distance*100);
+        sprintf(temperature, " %0.2f C", temp * 0.0625);
         ssd1306_display_text(&dev, 0, "---Distance---", 15, true);
         ssd1306_display_text(&dev, 1, dist, 11, false);
-        ssd1306_display_text(&dev, 2, "---Temp---", 10, true);
-        ssd1306_display_text(&dev, 3, read_raw_data, 10, false);
+        ssd1306_display_text(&dev, 2, "-----Temp-----", 10, true);
+        ssd1306_display_text(&dev, 3, temperature, 9, false);
     
         vTaskDelay(pdMS_TO_TICKS(500));
     }
