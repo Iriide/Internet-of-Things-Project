@@ -177,7 +177,7 @@ void ultrasonic_oled_test(void *pvParameters)
         sprintf(temperature, " %0.2f C", temp * 0.0625);
         ssd1306_display_text(&dev, 0, "---Distance---", 15, true);
         ssd1306_display_text(&dev, 1, dist, 11, false);
-        ssd1306_display_text(&dev, 2, "-----Temp-----", 10, true);
+        ssd1306_display_text(&dev, 2, "-----Temp-----", 15, true);
         ssd1306_display_text(&dev, 3, temperature, 9, false);
     
         vTaskDelay(pdMS_TO_TICKS(500));
