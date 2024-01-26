@@ -18,7 +18,7 @@
         Door General Macros
 ---------------------------------------------------------------*/
 #define DOOR_OPEN_MAX_DISTANCE_CM 10 // 15cm max
-#define DOOR_BUZZER_MAX_TIMER 30 // 30 * 500ms = 15s
+#define DOOR_BUZZER_MAX_TIMER 60 // 30 * 500ms = 30s
 #define DOOR_CLOSED_MAX_TIMER 5 // 5 * 500ms = 2.5s
 /*---------------------------------------------------------------
         Buzzer General Macros
